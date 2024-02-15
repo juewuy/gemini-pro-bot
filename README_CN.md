@@ -32,21 +32,26 @@
 
 ### Docker
 
-#### GitHub 容器注册表
+#### GitHub 容器镜像仓库
 
-只需运行以下命令即可从 GitHub 容器注册表运行预构建的映像：
+只需运行以下命令即可从 GitHub Container Registry 运行预构建的x86镜像：
 
 ```shell
-docker run --env-file .env ghcr.io/rabilrbl/gemini-pro-bot:latest
+docker run --env-file .env ghcr.io/juewuy/gemini-pro-bot:latest
 ```
 
-使用以下命令更新映像：
+升级:
 
 ```shell
-docker pull ghcr.io/rabilrbl/gemini-pro-bot:latest
+docker pull ghcr.io/juewuy/gemini-pro-bot:latest
 ```
 
 #### 构建
+
+```
+git clone https://github.com/juewuy/gemini-pro-bot.git
+cd gemini-pro-bot
+```
 
 使用以下命令构建映像：
 
@@ -54,15 +59,32 @@ docker pull ghcr.io/rabilrbl/gemini-pro-bot:latest
 docker build -t gemini-pro-bot .
 ```
 
-构建映像后，可以使用以下命令运行它：
+之后创建一个
+
+```
+.env
+```
+
+文件并添加以下环境变量：
+
+- `BOT_TOKEN`：你的 Telegram 机器人 API 令牌。你可以通过与 [@BotFather](https://t.me/BotFather) 交谈来获取一个。
+- `GOOGLE_API_KEY`：你的 Google Bard API 密钥。你可以从 [Google AI Studio](https://makersuite.google.com/) 获取一个。
+- `AUTHORIZED_USERS`：一个以逗号分隔的 Telegram用户ID或者群组ID列表，这些用户/群组将被授权访问机器人。（可选）示例值：`-1234567890123,-1234567890125,1234567890`
+
+最终，使用以下命令运行：
 
 ```shell
 docker run --env-file .env gemini-pro-bot
 ```
 
-### 安装
+### Python
 
 1. 克隆此存储库。
+
+   ```shell
+   git clone https://github.com/juewuy/gemini-pro-bot.git
+   cd gemini-pro-bot
+   ```
 
 2. 安装所需的依赖项：
 
