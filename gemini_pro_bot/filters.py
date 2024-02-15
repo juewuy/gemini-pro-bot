@@ -15,7 +15,7 @@ class AuthorizedUserFilter(UpdateFilter):
         if not _AUTHORIZED_USERS:
             return True
         return (
-            update.message.from_user.username in _AUTHORIZED_USERS
+            str(update.message.chat.id) in _AUTHORIZED_USERS
             or str(update.message.from_user.id) in _AUTHORIZED_USERS
         )
 

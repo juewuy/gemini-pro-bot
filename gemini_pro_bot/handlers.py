@@ -20,52 +20,51 @@ def new_chat(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /start is issued."""
+    """当接收到 /start 命令时响应："""
     user = update.effective_user
     await update.message.reply_html(
-        f"Hi {user.mention_html()}!\n\nStart sending messages with me to generate a response.\n\nSend /new to start a new chat session.",
+        f"Hi {user.mention_html()}!\n\n快来和我聊天吧！\n\n发送 /new 开始新的聊天会话",
         # reply_markup=ForceReply(selective=True),
     )
 
 
 async def help_command(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /help is issued."""
+    """当接收到 /help 命令时响应："""
     help_text = """
-Basic commands:
-/start - Start the bot
-/help - Get help. Shows this message
+命令提示:
 
-Chat commands:
-/new - Start a new chat session (model will forget previously generated messages)
+/start - 开始聊天
+/help - 获得帮助
+/new - 开始新的聊天会话（并清理之前生成的消息）
 
-Send a message to the bot to generate a response.
+请向机器人发送消息以获得回答.
 """
     await update.message.reply_text(help_text)
 
 
 async def newchat_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Start a new chat session."""
+    """开始新的聊天会话"""
     init_msg = await update.message.reply_text(
-        text="Starting new chat session...",
+        text="正在初始化...",
         reply_to_message_id=update.message.message_id,
     )
     new_chat(context)
-    await init_msg.edit_text("New chat session started.")
+    await init_msg.edit_text("新的对话已生成！")
 
 
 # Define the function that will handle incoming messages
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handles incoming text messages from users.
+    """处理来自用户的传入信息。
 
-    Checks if a chat session exists for the user, initializes a new session if not.
-    Sends the user's message to the chat session to generate a response.
-    Streams the response back to the user, handling any errors.
+     检查用户是否存在聊天会话，如果不存在则初始化新会话。
+     将用户的消息发送到聊天会话以生成响应。
+     将响应流式传输回用户，处理任何错误。
     """
     if context.chat_data.get("chat") is None:
         new_chat(context)
     text = update.message.text
     init_msg = await update.message.reply_text(
-        text="Generating...", reply_to_message_id=update.message.message_id
+        text="请稍候...", reply_to_message_id=update.message.message_id
     )
     await update.message.chat.send_action(ChatAction.TYPING)
     # Generate a response using the text-generation pipeline
@@ -76,15 +75,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             text, stream=True
         )  # Generate a response
     except StopCandidateException as sce:
-        print("Prompt: ", text, " was stopped. User: ", update.message.from_user)
+        print("提示：", text, " 停止！用户: ", update.message.from_user)
         print(sce)
-        await init_msg.edit_text("The model unexpectedly stopped generating.")
+        await init_msg.edit_text("连接意外中断！")
         chat.rewind()  # Rewind the chat session to prevent the bot from getting stuck
         return
     except BlockedPromptException as bpe:
-        print("Prompt: ", text, " was blocked. User: ", update.message.from_user)
+        print("提示：", text, " 停止！用户: ", update.message.from_user)
         print(bpe)
-        await init_msg.edit_text("Blocked due to safety concerns.")
+        await init_msg.edit_text("可能是出于安全考虑而被阻止。")
         if response:
             # Resolve the response to prevent the chat session from getting stuck
             await response.resolve()
@@ -102,7 +101,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     disable_web_page_preview=True,
                 )
         except StopCandidateException as sce:
-            await init_msg.edit_text("The model unexpectedly stopped generating.")
+            await init_msg.edit_text("连接意外中断！")
             chat.rewind()  # Rewind the chat session to prevent the bot from getting stuck
             continue
         except BadRequest:
@@ -110,11 +109,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             continue
         except NetworkError:
             raise NetworkError(
-                "Looks like you're network is down. Please try again later."
+                "网络错误，请稍候再试！"
             )
         except IndexError:
             await init_msg.reply_text(
-                "Some index error occurred. This response is not supported."
+                "发生一些索引错误，无法响应！"
             )
             await response.resolve()
             continue
@@ -134,9 +133,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def handle_image(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle incoming images with captions and generate a response."""
+    """处理带有标题的传入图像并生成响应。"""
     init_msg = await update.message.reply_text(
-        text="Generating...", reply_to_message_id=update.message.message_id
+        text="请稍候...", reply_to_message_id=update.message.message_id
     )
     images = update.message.photo
     unique_images: dict = {}
@@ -153,7 +152,7 @@ async def handle_image(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.caption:
         prompt = update.message.caption
     else:
-        prompt = "Analyse this image and generate response"
+        prompt = "正在分析图像并生成回复..."
     response = await img_model.generate_content_async([prompt, a_img], stream=True)
     full_plain_message = ""
     async for chunk in response:
@@ -167,17 +166,17 @@ async def handle_image(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
                     disable_web_page_preview=True,
                 )
         except StopCandidateException:
-            await init_msg.edit_text("The model unexpectedly stopped generating.")
+            await init_msg.edit_text("连接意外中断！")
         except BadRequest:
             await response.resolve()
             continue
         except NetworkError:
             raise NetworkError(
-                "Looks like you're network is down. Please try again later."
+                "网络错误，请稍候再试！"
             )
         except IndexError:
             await init_msg.reply_text(
-                "Some index error occurred. This response is not supported."
+                "发生一些索引错误，无法响应！"
             )
             await response.resolve()
             continue
